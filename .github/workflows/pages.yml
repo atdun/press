@@ -9,6 +9,9 @@ jobs:
     concurrency: ci-${{ github.ref }}
     runs-on: ubuntu-latest
     steps:
+      with:
+      token: ${{ secrets.TOKEN }}
+      submodules: recursive
       - name: Checkout  ️ # 将代码拉取到虚拟机
         uses: actions/checkout@v3
 
