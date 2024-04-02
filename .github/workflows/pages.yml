@@ -1,39 +1,34 @@
-# 以下以一个构建vue项目的yml文件为例子
 name: GitHub Actions Build and Deploy
+
 on:
   push:
     branches:
       - gaoyan/dev # 这里只配置了master分支，所以只有推送master分支才会触发以下任务
+
 jobs:
   build-and-deploy:
-    concurrency: ci-${{ github.ref }}
     runs-on: ubuntu-latest
+    concurrency:
+      group: ci-${{ github.ref }}
+
     steps:
-      with:
-      token: ${{ secrets.TOKEN }}
-      submodules: recursive
-      - name: Checkout  ️ # 将代码拉取到虚拟机
+      - name: Checkout ️
         uses: actions/checkout@v3
 
       - name: Use Node.js
-        # 配置 Node 执行环境（当前构建的服务器默认没有 Node 环境，可以通过 Action 安装 Node）
-        # https://github.com/actions/setup-node
         uses: actions/setup-node@v1
         with:
           node-version: 14.17.0
 
-      - name: Install and Build   # 安装依赖、打包，如果提前已打包好无需这一步
-          # 安装 Node 之后就可以执行构建脚本
+      - name: Install and Build
         run: |
           npm install yarn -g
           yarn
           yarn build
 
       - name: Deploy
-        # 将构建产物 commit 到一个分支上，用于发布静态站点资源
-        # https://github.com/peaceiris/actions-gh-pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          branch: gh-pages # 部署后提交到那个分支
-          folder: dist # 这里填打包好的目录名称
-
+          token: ${{ secrets.TOKEN }}
+          branch: gh-pages
+          folder: dist
