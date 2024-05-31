@@ -1,35 +1,53 @@
-name: GitHub Actions Build and Deploy
+name: Pages
 
 on:
   push:
     branches:
-      - gaoyan/dev # 这里只配置了master分支，所以只有推送master分支才会触发以下任务
+      - master
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-    concurrency:
-      group: ci-${{ github.ref }}
-
     steps:
-      - name: Checkout ️
-        uses: actions/checkout@v3
-
-      - name: Use Node.js
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v4
         with:
-          node-version: 14.17.0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
 
-      - name: Install and Build   # 安装依赖、打包，如果提前已打包好无需这一步
-          # 安装 Node 之后就可以执行构建脚本
-        run: |
-          npm install yarn -g
-          yarn
-          yarn build
-
-      - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@v4
+      - name: Use Node.js 16.0.0.x
+        uses: actions/setup-node@v4
         with:
-          token: ${{ secrets.TOKEN }}
-          branch: gh-pages
-          folder: dist
+          node-version: '16.0.0'
+
+      - name: Cache NPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.OS }}-npm-cache-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.OS }}-npm-cache-
+
+      - name: Install Dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./public
+
+  deploy:
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
